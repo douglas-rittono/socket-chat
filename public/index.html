@@ -10,9 +10,19 @@
     <label for="username">Nickname:</label>
     <input type="text" id="username" autocomplete="off" placeholder="Nickname">
     <br>
+
+    <!-- Combobox para selecionar a sala de chat -->
+    <label for="chat-room">Escolha uma sala de chat:</label>
+    <select id="chat-room">
+        <option value="Sala1">Sala1</option>
+        <option value="Sala2">Sala2</option>
+        <option value="Sala3">Sala3</option>
+        <option value="Sala4">Sala4</option>
+    </select>
+    <br>
     <hr>
-    <ul id='messages'>
-    </ul>
+
+    <ul id='messages'></ul>
     <form id="form" action="">
         <textarea id="input" autocomplete="off" rows="5" cols="100"></textarea><br>
         <button>Enviar</button>
@@ -28,9 +38,9 @@
                 var message = document.getElementById('input').value;
                 var username = document.getElementById('username').value;
                 var currentTime = new Date().toLocaleTimeString();
-                socket.emit('chat message', {user: username, message: message, time: currentTime})
+                var room = document.getElementById('chat-room').value; // Obtendo a sala selecionada
+                socket.emit('chat message', {user: username, message: message, time: currentTime, room: room})
                 document.getElementById('input').value = ""
-                
             }
         )
 
@@ -44,7 +54,10 @@
         )
 
         socket.on('chat message', function(data) {
-            addMessage('<b>[' + data.time + ']' + data.user + ':</b>' + data.message)
+            var selectedRoom = document.getElementById('chat-room').value;
+            if (data.room === selectedRoom) { // Verifica se a mensagem é da sala selecionada
+                addMessage('<b>[' + data.time + ']' + data.user + ':</b>' + data.message)
+            }
         })
 
         function addMessage(message){
