@@ -1,57 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
-    <label for="username">Nickname:</label>
-    <input type="text" id="username" autocomplete="off" placeholder="Nickname">
-    <br>
-    <hr>
-    <ul id='messages'>
-    </ul>
-    <form id="form" action="">
-        <textarea id="input" autocomplete="off" rows="5" cols="100"></textarea><br>
-        <button>Enviar</button>
-    </form>
+<label for="room">Escolha uma sala:</label>
+<select id="room">
+    <option value="sala1">Sala 1</option>
+    <option value="sala2">Sala 2</option>
+    <option value="sala3">Sala 3</option>
+    <option value="sala4">Sala 4</option>
+</select>
+<button id="joinRoom">Entrar na Sala</button>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        var socket = io()
+<br><br>
+<label for="username">Nickname:</label>
+<input type="text" id="username" autocomplete="off" placeholder="Nickname">
 
-        document.getElementById('form').addEventListener('submit',
-            function(e){
-                e.preventDefault();
-                var message = document.getElementById('input').value;
-                var username = document.getElementById('username').value;
-                var currentTime = new Date().toLocaleTimeString();
-                socket.emit('chat message', {user: username, message: message, time: currentTime})
-                document.getElementById('input').value = ""
-                
-            }
-        )
+<hr>
+<ul id='messages'></ul>
 
-        document.getElementById('input').addEventListener('keydown',
-            function(e){
-                if(e.key === 'Enter'){
-                    e.preventDefault()
-                    document.getElementById('form').dispatchEvent(new Event('submit'))
-                }
-            }
-        )
+<form id="form" action="">
+    <textarea id="input" autocomplete="off" rows="5" cols="100"></textarea><br>
+    <button>Enviar</button>
+</form>
 
-        socket.on('chat message', function(data) {
-            addMessage('<b>[' + data.time + ']' + data.user + ':</b>' + data.message)
-        })
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io()
+    let currentRoom = null;
 
-        function addMessage(message){
-            var li = document.createElement('li')
-            li.innerHTML = message
-            document.getElementById('messages').appendChild(li)
+    document.getElementById('joinRoom').addEventListener('click', () => {
+        const selectedRoom = document.getElementById('room').value;
+        const username = document.getElementById('username').value;
+
+        if (!username) {
+            alert("Digite seu nickname antes de entrar na sala.");
+            return;
         }
-    </script>
-</body>
-</html>
+
+        if (currentRoom) {
+            socket.emit('leave room', currentRoom);
+        }
+
+        currentRoom = selectedRoom;
+        document.getElementById('messages').innerHTML = ''; // limpa mensagens antigas
+        socket.emit('join room', currentRoom);
+    });
+
+    document.getElementById('form').addEventListener('submit', function(e){
+        e.preventDefault();
+        if (!currentRoom) {
+            alert("Você precisa entrar em uma sala antes de enviar mensagens.");
+            return;
+        }
+
+        const message = document.getElementById('input').value;
+        const username = document.getElementById('username').value;
+        const currentTime = new Date().toLocaleTimeString();
+
+        socket.emit('chat message', {
+            user: username,
+            message: message,
+            time: currentTime,
+            room: currentRoom
+        });
+
+        document.getElementById('input').value = "";
+    });
+
+    document.getElementById('input').addEventListener('keydown', function(e){
+        if(e.key === 'Enter' && !e.shiftKey){
+            e.preventDefault();
+            document.getElementById('form').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    socket.on('chat message', function(data) {
+        addMessage(`<b>[${data.time}] ${data.user}:</b> ${data.message}`);
+    });
+
+    function addMessage(message){
+        const li = document.createElement('li');
+        li.innerHTML = message;
+        document.getElementById('messages').appendChild(li);
+    }
+</script>
